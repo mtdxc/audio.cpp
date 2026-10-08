@@ -1,6 +1,7 @@
 #include "engine/models/smart_turn/session.h"
 
 #include "engine/models/smart_turn/runtime.h"
+#include "engine/framework/audio/conversion.h"
 #include "engine/framework/runtime/options.h"
 #include "engine/framework/runtime/session_base.h"
 #include "engine/framework/runtime/spec_backed_model.h"
@@ -38,16 +39,15 @@ public:
         require_prepared("Smart Turn run");
         runtime::validate_spec_backed_request_options(request.options, request.option_arrays, *contract_, "Smart Turn");
         if (!request.audio_input) throw std::runtime_error("Smart Turn requires audio_input");
-        const auto & audio = *request.audio_input;
-        if (audio.sample_rate != 16000 || audio.channels != 1) {
-            throw std::runtime_error("Smart Turn requires 16000 Hz mono audio");
-        }
+        const auto & audio_input = *request.audio_input;
+        const auto mono = audio::convert_interleaved_audio_to_mono_linear_resampled(
+            audio_input.samples, audio_input.sample_rate, audio_input.channels, 16000);
         const float threshold = runtime::parse_finite_float_option(request.options, {"threshold"}).value_or(0.5f);
         if (threshold < 0.0f || threshold > 1.0f) {
             throw std::runtime_error("Smart Turn threshold must be between 0 and 1");
         }
         const auto started = std::chrono::steady_clock::now();
-        const float probability = runtime_.completion_probability(audio.samples);
+        const float probability = runtime_.completion_probability(mono);
         runtime::TaskResult result;
         result.custom_schema_output = runtime::CustomSchemaOutput{
             "smart_turn.v1",
