@@ -1139,7 +1139,7 @@ float inverse_rational_quadratic(
     if (input < -bound || input > bound) {
         return input;
     }
-    auto normalized = [](const float * raw, float * values) {
+    auto normalized = [=](const float * raw, float * values) {
         float maximum = raw[0];
         for (int i = 1; i < bins; ++i) maximum = std::max(maximum, raw[i]);
         float sum = 0.0F;

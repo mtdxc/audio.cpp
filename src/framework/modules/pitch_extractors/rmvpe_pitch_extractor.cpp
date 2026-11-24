@@ -401,8 +401,8 @@ std::vector<float> compute_rmvpe_log_mel(
     const auto mel_start = std::chrono::steady_clock::now();
     const int64_t freq_bins = magnitude.shape[1];
     const int64_t frames = magnitude.shape[2];
-    static const RmvpeMelFilterbank mel_filter = [] {
-        constexpr int64_t freq_bins = kNfft / 2 + 1;
+    static const RmvpeMelFilterbank mel_filter = [=] {
+        int64_t freq_bins = kNfft / 2 + 1;
         std::vector<double> mel_points(static_cast<size_t>(kRmvpeMelBins + 2), 0.0);
         const auto hz_to_mel = [](double hz) {
             return 2595.0 * std::log10(1.0 + hz / 700.0);

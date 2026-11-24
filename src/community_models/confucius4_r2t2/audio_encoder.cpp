@@ -315,8 +315,7 @@ std::shared_ptr<const R2T2ASRAudioEncoderWeights> load_weights(
     return weights;
 }
 
-modules::TransformerEncoderBlockWeights bind_layer(const AudioLayerWeights & weights) {
-    modules::TransformerEncoderBlockWeights block;
+void bind_layer(const AudioLayerWeights & weights, modules::TransformerEncoderBlockWeights& block) {
     block.norm1 = {weights.self_attn_norm_weight, weights.self_attn_norm_bias};
     block.self_attention.q_weight = weights.q_proj_weight;
     block.self_attention.q_bias = weights.q_proj_bias;
@@ -335,7 +334,6 @@ modules::TransformerEncoderBlockWeights bind_layer(const AudioLayerWeights & wei
     block.feed_forward.fc2_weight = weights.fc2_weight;
     block.feed_forward.fc2_bias = weights.fc2_bias;
     block.layer_scale2 = std::nullopt;
-    return block;
 }
 
 struct GgmlGallocrDeleter {
@@ -457,7 +455,9 @@ public:
             core::TensorShape::from_dims({1, 1, output_tokens_, output_tokens_}));
         attention_mask_ = attention_mask.tensor;
         for (const auto & layer : weights_->layers) {
-            x = audio_encoder_layer(ctx, x, bind_layer(layer), config, attention_mask);
+            modules::TransformerEncoderBlockWeights block;
+            bind_layer(layer, block);
+            x = audio_encoder_layer(ctx, x, block, config, attention_mask);
         }
         x = modules::LayerNormModule({config.d_model, 1.0e-5F, true, true})
                 .build(ctx, x, {weights_->ln_post_weight, weights_->ln_post_bias});
